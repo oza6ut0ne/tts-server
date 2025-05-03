@@ -113,6 +113,7 @@ def on_message(client, userdata, message):
         )
         english_to_kana = data.get('english_to_kana', settings.english_to_kana)
         shorten_urls = data.get('shorten_urls', settings.shorten_urls)
+        speaker_id = data.get('speaker_id', settings.speaker_id)
     except json.JSONDecodeError:
         text = payload
         r = settings.r
@@ -120,6 +121,7 @@ def on_message(client, userdata, message):
         english_word_min_length = settings.english_word_min_length
         english_to_kana = settings.english_to_kana
         shorten_urls = settings.shorten_urls
+        speaker_id = settings.speaker_id
 
     logger.info(text.replace('\n', ' '))
     try:
@@ -130,7 +132,7 @@ def on_message(client, userdata, message):
             english_word_min_length,
             english_to_kana,
             shorten_urls,
-            settings.speaker_id,
+            speaker_id,
             is_threaded=True,
         )
     except Exception as e:
@@ -152,6 +154,7 @@ class SayParam(BaseModel):
     english_word_min_length: int = settings.english_word_min_length
     english_to_kana: bool = settings.english_to_kana
     shorten_urls: bool = settings.shorten_urls
+    speaker_id: int = settings.speaker_id
 
 
 app = FastAPI()
@@ -165,6 +168,7 @@ async def get_say(
     english_word_min_length: int = settings.english_word_min_length,
     english_to_kana: bool = settings.english_to_kana,
     shorten_urls: bool = settings.shorten_urls,
+    speaker_id: int = settings.speaker_id,
 ):
     logger_http.debug(locals())
     logger_uvicorn.info(text.replace('\n', ' '))
@@ -176,7 +180,7 @@ async def get_say(
             english_word_min_length,
             english_to_kana,
             shorten_urls,
-            settings.speaker_id,
+            speaker_id,
             is_threaded=True,
         )
     except Exception as e:
@@ -197,7 +201,7 @@ async def post_say(param: SayParam):
             param.english_word_min_length,
             param.english_to_kana,
             param.shorten_urls,
-            settings.speaker_id,
+            param.speaker_id,
             is_threaded=True,
         )
     except Exception as e:
@@ -214,6 +218,7 @@ async def get_audio(
     english_word_min_length: int = settings.english_word_min_length,
     english_to_kana: bool = settings.english_to_kana,
     shorten_urls: bool = settings.shorten_urls,
+    speaker_id: int = settings.speaker_id,
 ):
     logger_http.debug(locals())
     logger_uvicorn.info(text.replace('\n', ' '))
@@ -225,7 +230,7 @@ async def get_audio(
             english_word_min_length,
             english_to_kana,
             shorten_urls,
-            settings.speaker_id,
+            speaker_id,
         )
     except Exception as e:
         logger_uvicorn.error(e)
@@ -246,7 +251,7 @@ async def post_audio(param: SayParam):
             param.english_word_min_length,
             param.english_to_kana,
             param.shorten_urls,
-            settings.speaker_id,
+            param.speaker_id,
         )
     except Exception as e:
         logger_uvicorn.error(e)
