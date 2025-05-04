@@ -95,9 +95,48 @@
           LD_LIBRARY_PATH_FOR_VSAY_CUDA =
             pkgs.lib.makeLibraryPath buildInputsForVsayCuda
             + ":${voicevox-core-cuda}:${voicevox-cuda-additional-libraries}";
+
+          makeSubCommands = packages: ''
+            (${(lib.concatMapStrings (package: "\"${package.name}\" ") packages) + "\"setup\""})
+          '';
+          makeSubFunction = package: ''
+            ${package.name}() {
+              ${package}/bin/${package.name} "$@"
+            }
+          '';
+          makeSetupFunction = packages: ''
+            setup() {
+              echo Downloading dependencies...
+            ${(lib.concatMapStringsSep "\n" (package: "  ${package}/bin/${package.name}") packages)}
+              echo Done!
+            }
+          '';
+          makeLauncherScript = runtimeInputs: setupInputs: ''
+            COMMANDS=${(makeSubCommands runtimeInputs)}
+            progname=$(basename "''${ARGV0-$0}")
+
+            is_valid_command() {
+              printf '%s\n' "''${COMMANDS[@]}" | grep -qx "$1" 2>/dev/null
+            }
+
+            ${(makeSetupFunction setupInputs)}
+            ${(lib.concatMapStrings makeSubFunction runtimeInputs)}
+
+            if is_valid_command "$progname"; then
+              "$progname" "$@"
+            else
+              subcmd="''${1-}"
+              if shift && is_valid_command "$subcmd"; then
+                "$subcmd" "$@"
+              else
+                echo "Usage: $progname {''${COMMANDS[*]}} [args...]"
+                exit 1
+              fi
+            fi
+          '';
         in
         {
-          packages = {
+          packages = rec {
             jsay = pkgs.writeShellApplication {
               name = "jsay";
               runtimeInputs = buildInputsForJsay;
@@ -151,6 +190,48 @@
                 export LD_LIBRARY_PATH=''${LD_LIBRARY_PATH-}:${LD_LIBRARY_PATH_FOR_VSAY_CUDA}
                 uv run -p 3.13 -s ${src}/vserver.py "$@"
               '';
+            };
+            jtts = pkgs.writeShellApplication rec {
+              name = "jtts";
+              runtimeInputs = [
+                jsay
+                jserver
+              ];
+              text = (
+                makeLauncherScript runtimeInputs [
+                  jsay
+                ]
+              );
+            };
+            tts = pkgs.writeShellApplication rec {
+              name = "tts";
+              runtimeInputs = [
+                jsay
+                jserver
+                vsay
+                vserver
+              ];
+              text = (
+                makeLauncherScript runtimeInputs [
+                  jsay
+                  vsay
+                ]
+              );
+            };
+            tts-cuda = pkgs.writeShellApplication rec {
+              name = "tts";
+              runtimeInputs = [
+                jsay
+                jserver
+                vsay-cuda
+                vserver-cuda
+              ];
+              text = (
+                makeLauncherScript runtimeInputs [
+                  jsay
+                  vsay-cuda
+                ]
+              );
             };
           };
 
