@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # /// script
+# requires-python = ">=3.13"
 # dependencies = [
 #   "alkana==0.0.3",
 #   "fasteners==0.18",
@@ -11,7 +12,7 @@
 # [tool.uv.sources]
 # voicevox-core = [
 #   { url = "https://github.com/VOICEVOX/voicevox_core/releases/download/0.15.7/voicevox_core-0.15.7+cpu-cp38-abi3-linux_x86_64.whl", marker = "platform_machine == 'x86_64'"},
-#   { url = "https://github.com/VOICEVOX/voicevox_core/releases/download/0.15.7/voicevox_core-0.15.7+cpu-cp38-abi3-linux_aarch64.whl", marker = "platform_machine == 'aarch64'"},
+#   { url = "https://github.com/VOICEVOX/voicevox_core/releases/download/0.15.7/voicevox_core-0.15.7+cpu-cp38-abi3-linux_aarch64.whl", marker = "platform_machine != 'x86_64'"},
 # ]
 # ///
 

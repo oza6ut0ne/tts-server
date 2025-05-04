@@ -40,6 +40,7 @@
 
           src = lib.sourceByRegex ./. [
             "^.*\.py"
+            "^.*\.lock"
             "^.*\.csv"
           ];
 
