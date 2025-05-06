@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     fm: float = 3.0
     english_word_min_length: int = 3
     english_to_kana: bool = True
+    use_user_dic: bool = True
     shorten_urls: bool = False
 
     class Config:
@@ -99,6 +100,7 @@ def on_message(client, userdata, message):
             'english_word_min_length', settings.english_word_min_length
         )
         english_to_kana = data.get('english_to_kana', settings.english_to_kana)
+        use_user_dic = data.get('use_user_dic', settings.use_user_dic)
         shorten_urls = data.get('shorten_urls', settings.shorten_urls)
     except json.JSONDecodeError:
         text = payload
@@ -106,6 +108,7 @@ def on_message(client, userdata, message):
         fm = settings.fm
         english_word_min_length = settings.english_word_min_length
         english_to_kana = settings.english_to_kana
+        use_user_dic = settings.use_user_dic
         shorten_urls = settings.shorten_urls
 
     logger.info(text.replace('\n', ' '))
@@ -116,6 +119,7 @@ def on_message(client, userdata, message):
             fm,
             english_word_min_length,
             english_to_kana,
+            use_user_dic,
             shorten_urls,
             is_threaded=True,
         )
@@ -137,6 +141,7 @@ class SayParam(BaseModel):
     fm: float = settings.fm
     english_word_min_length: int = settings.english_word_min_length
     english_to_kana: bool = settings.english_to_kana
+    use_user_dic: bool = settings.use_user_dic
     shorten_urls: bool = settings.shorten_urls
 
 
@@ -150,6 +155,7 @@ async def get_say(
     fm: float = settings.fm,
     english_word_min_length: int = settings.english_word_min_length,
     english_to_kana: bool = settings.english_to_kana,
+    use_user_dic: bool = settings.use_user_dic,
     shorten_urls: bool = settings.shorten_urls,
 ):
     logger_http.debug(locals())
@@ -161,6 +167,7 @@ async def get_say(
             fm,
             english_word_min_length,
             english_to_kana,
+            use_user_dic,
             shorten_urls,
             is_threaded=True,
         )
@@ -181,6 +188,7 @@ async def post_say(param: SayParam):
             param.fm,
             param.english_word_min_length,
             param.english_to_kana,
+            param.use_user_dic,
             param.shorten_urls,
             is_threaded=True,
         )
@@ -197,6 +205,7 @@ async def get_audio(
     fm: float = settings.fm,
     english_word_min_length: int = settings.english_word_min_length,
     english_to_kana: bool = settings.english_to_kana,
+    use_user_dic: bool = settings.use_user_dic,
     shorten_urls: bool = settings.shorten_urls,
 ):
     logger_http.debug(locals())
@@ -208,6 +217,7 @@ async def get_audio(
             fm,
             english_word_min_length,
             english_to_kana,
+            use_user_dic,
             shorten_urls,
         )
     except Exception as e:
@@ -228,6 +238,7 @@ async def post_audio(param: SayParam):
             param.fm,
             param.english_word_min_length,
             param.english_to_kana,
+            param.use_user_dic,
             param.shorten_urls,
         )
     except Exception as e:

@@ -1,11 +1,17 @@
-/*.so
-/*.so.*
-/hts-voice
-/open_jtalk_dic_utf_8-1.11
-/alkana_extra_data.csv
+*.so
+*.so.*
+*.htsvoice
+*.dic
+*.def
+*.bin
+*.csv
 
-/result
-/*-arx
-/*.AppImage
+/hts-voice
+/open_jtalk_dic_utf_8-*
+
+result
+*-arx
+*.AppImage
+*.wav
 
 __pycache__

@@ -9,6 +9,7 @@
 # ///
 
 import argparse
+import csv
 import io
 import os
 import queue
@@ -29,23 +30,28 @@ MAIN_DIR = Path(__file__).resolve().parent
 APPIMAGE_FILE = os.environ.get('APPIMAGE')
 APPIMAGE_DIR = Path(APPIMAGE_FILE).parent if APPIMAGE_FILE else None
 
-DEFAULT_ALKANA_EXTRA_DATA_NAME = 'alkana_extra_data.csv'
-if (Path('.').resolve() / DEFAULT_ALKANA_EXTRA_DATA_NAME).exists():
-    DEFAULT_ALKANA_EXTRA_DATA = Path('.').resolve() / DEFAULT_ALKANA_EXTRA_DATA_NAME
-elif APPIMAGE_DIR and (APPIMAGE_DIR / DEFAULT_ALKANA_EXTRA_DATA_NAME).exists():
-    DEFAULT_ALKANA_EXTRA_DATA = APPIMAGE_DIR / DEFAULT_ALKANA_EXTRA_DATA_NAME
-else:
-    DEFAULT_ALKANA_EXTRA_DATA = MAIN_DIR / DEFAULT_ALKANA_EXTRA_DATA_NAME
-
 URL_REPLACE_TEXT = 'URL'
 URL_REGEX = re.compile(r'(https?|ftp)(:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+)')
 SPLIT_TEXT_REGEX = re.compile(r'(?<=[\n　。、！？!?」』)）】》])|(?<=\.\s)')
+
+
+def _create_default_path(rel_path):
+    if (Path('.').resolve() / rel_path).exists():
+        return Path('.').resolve() / rel_path
+    elif APPIMAGE_DIR and (APPIMAGE_DIR / rel_path).exists():
+        return APPIMAGE_DIR / rel_path
+    return MAIN_DIR / rel_path
+
+
+DEFAULT_ALKANA_EXTRA_DATA = _create_default_path('alkana_extra_data.csv')
+DEFAULT_USER_DIC = _create_default_path('user_dic.csv')
 
 
 class Settings(BaseSettings):
     htsvoice: str = str(MAIN_DIR / 'hts-voice/tohoku-f01-angry.htsvoice')
     open_jtalk_dic: str = str(MAIN_DIR / 'open_jtalk_dic_utf_8-1.11')
     alkana_extra_data: str = str(DEFAULT_ALKANA_EXTRA_DATA)
+    user_dic: str = str(DEFAULT_USER_DIC)
     play_command: str = 'aplay'
     lock_file: str = '/tmp/lockfiles/jsay.lock'
     batch_num_lines: int = 10
@@ -54,6 +60,7 @@ class Settings(BaseSettings):
     fm: float = 3.0
     english_word_min_length: int = 3
     english_to_kana: bool = True
+    use_user_dic: bool = True
     shorten_urls: bool = False
 
     class Config:
@@ -70,14 +77,27 @@ class Settings(BaseSettings):
             'alkana_extra_data': {
                 'env': ['jsay_alkana_extra_data', 'alkana_extra_data']
             },
+            'user_dic': {'env': ['jsay_user_dic', 'user_dic']},
             'play_command': {'env': ['jsay_play_command', 'play_command']},
             'lock_file': {'env': ['jsay_lock_file', 'lock_file']},
         }
 
 
 settings = Settings()
-if Path(settings.alkana_extra_data).exists():
+if Path(settings.alkana_extra_data).is_file():
     alkana.add_external_data(settings.alkana_extra_data)
+
+if Path(settings.user_dic).is_file():
+    with open(settings.user_dic) as f:
+        reader = csv.reader(f)
+        USER_DIC = {r[0].lower(): r[1] for r in reader}
+        USER_DATA_REGEX = re.compile(
+            '|'.join(re.escape(k) for k in USER_DIC.keys()), re.IGNORECASE
+        )
+        del reader
+else:
+    USER_DIC = {}
+    USER_DATA_REGEX = None
 
 
 __queue: queue.Queue | None = None
@@ -113,10 +133,17 @@ def __say(
     fm=settings.fm,
     english_word_min_length=settings.english_word_min_length,
     english_to_kana=settings.english_to_kana,
+    use_user_dic=settings.use_user_dic,
     shorten_urls=settings.shorten_urls,
 ):
     audio_bytes = generate_audio_bytes(
-        script, speed, fm, english_word_min_length, english_to_kana, shorten_urls
+        script,
+        speed,
+        fm,
+        english_word_min_length,
+        english_to_kana,
+        use_user_dic,
+        shorten_urls,
     )
     play_sound(audio_bytes)
 
@@ -127,6 +154,7 @@ def say(
     fm=settings.fm,
     english_word_min_length=settings.english_word_min_length,
     english_to_kana=settings.english_to_kana,
+    use_user_dic=settings.use_user_dic,
     shorten_urls=settings.shorten_urls,
     is_threaded=False,
 ):
@@ -139,10 +167,26 @@ def say(
     if is_threaded:
         __ensure_worker()
         __queue.put(
-            (script, speed, fm, english_word_min_length, english_to_kana, shorten_urls)
+            (
+                script,
+                speed,
+                fm,
+                english_word_min_length,
+                english_to_kana,
+                use_user_dic,
+                shorten_urls,
+            )
         )
     else:
-        __say(script, speed, fm, english_word_min_length, english_to_kana, shorten_urls)
+        __say(
+            script,
+            speed,
+            fm,
+            english_word_min_length,
+            english_to_kana,
+            use_user_dic,
+            shorten_urls,
+        )
 
 
 def generate_audio_bytes(
@@ -151,6 +195,7 @@ def generate_audio_bytes(
     fm=settings.fm,
     english_word_min_length=settings.english_word_min_length,
     english_to_kana=settings.english_to_kana,
+    use_user_dic=settings.use_user_dic,
     shorten_urls=settings.shorten_urls,
 ):
     all_lines = [l for l in script.splitlines() if len(l.strip()) > 0]
@@ -164,6 +209,8 @@ def generate_audio_bytes(
         text = remove_bad_characters(batch_text)
         if shorten_urls:
             text = replace_urls(text)
+        if use_user_dic:
+            text = apply_user_dic(text)
         if english_to_kana:
             text = convert_english_to_kana(text, english_word_min_length)
 
@@ -231,6 +278,17 @@ def remove_bad_characters(text):
 
 def replace_urls(text):
     return URL_REGEX.sub(URL_REPLACE_TEXT, text)
+
+
+def apply_user_dic(text):
+    if len(USER_DIC) == 0 or USER_DATA_REGEX is None:
+        return text
+
+    def replacer(match):
+        matched_text = match.group(0)
+        return USER_DIC[matched_text.lower()]
+
+    return USER_DATA_REGEX.sub(replacer, text)
 
 
 def convert_english_to_kana(
@@ -338,6 +396,7 @@ def _parse_args():
         default=settings.english_word_min_length,
     )
     parser.add_argument('-e', '--english-to-kana', action='store_true')
+    parser.add_argument('-d', '--use-user-dic', action='store_true')
     parser.add_argument('-u', '--shorten-urls', action='store_true')
     parser.add_argument('-p', '--print-bytes', action='store_true')
     return parser.parse_args()
@@ -358,6 +417,7 @@ def main():
             args.fm,
             args.english_word_min_length,
             args.english_to_kana,
+            args.use_user_dic,
             args.shorten_urls,
         )
         sys.stdout.buffer.write(audio_bytes)
@@ -369,6 +429,7 @@ def main():
             args.fm,
             args.english_word_min_length,
             args.english_to_kana,
+            args.use_user_dic,
             args.shorten_urls,
         )
 
