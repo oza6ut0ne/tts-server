@@ -19,6 +19,7 @@
 import argparse
 import csv
 import io
+import logging
 import os
 import queue
 import re
@@ -56,6 +57,7 @@ DEFAULT_USER_DIC = _create_default_path('user_dic.csv')
 
 
 class Settings(BaseSettings):
+    debug: bool = False
     open_jtalk_dic: str = str(MAIN_DIR / 'open_jtalk_dic_utf_8-1.11')
     alkana_extra_data: str = str(DEFAULT_ALKANA_EXTRA_DATA)
     user_dic: str = str(DEFAULT_USER_DIC)
@@ -81,6 +83,7 @@ class Settings(BaseSettings):
             else [str(MAIN_DIR / '.env'), '.env']
         )
         fields = {
+            'debug': {'env': ['vsay_debug', 'debug']},
             'open_jtalk_dic': {'env': ['vsay_open_jtalk_dic', 'open_jtalk_dic']},
             'alkana_extra_data': {
                 'env': ['vsay_alkana_extra_data', 'alkana_extra_data']
@@ -91,6 +94,7 @@ class Settings(BaseSettings):
         }
 
 
+logger = logging.getLogger(__name__)
 settings = Settings()
 if Path(settings.alkana_extra_data).is_file():
     alkana.add_external_data(settings.alkana_extra_data)
@@ -106,7 +110,6 @@ if Path(settings.user_dic).is_file():
 else:
     USER_DIC = {}
     USER_DATA_REGEX = None
-
 
 __queue: queue.Queue | None = None
 __thread: threading.Thread | None = None
@@ -142,9 +145,11 @@ def __ensure_worker():
 def __worker(q):
     while True:
         try:
-            __say(*q.get())
+            item = q.get()
+            logger.debug(item)
+            __say(*item)
         except Exception:
-            print(traceback.format_exc())
+            logger.error(traceback.format_exc())
 
 
 def __say(
@@ -225,6 +230,7 @@ def generate_audio_bytes(
     speaker_id=settings.speaker_id,
 ):
     global __core
+    logger.debug(script)
     all_lines = [l for l in script.splitlines() if len(l.strip()) > 0]
     batch_lines = [
         '\n'.join(all_lines[i : i + settings.batch_num_lines])
@@ -233,6 +239,7 @@ def generate_audio_bytes(
 
     results = []
     for batch_text in batch_lines:
+        logger.debug(batch_text)
         text = remove_bad_characters(batch_text)
         if shorten_urls:
             text = replace_urls(text)
@@ -275,17 +282,20 @@ def play_sound(audio_bytes):
         p_aplay.communicate(input=audio_bytes, timeout=120)
     except subprocess.TimeoutExpired as e:
         p_aplay.terminate()
-        print(e)
+        logger.error(e)
 
 
 def remove_bad_characters(text):
     text = text.replace('\n', '　')
     text = text.replace('\0', '')
+    logger.debug(text)
     return text
 
 
 def replace_urls(text):
-    return URL_REGEX.sub(URL_REPLACE_TEXT, text)
+    result = URL_REGEX.sub(URL_REPLACE_TEXT, text)
+    logger.debug(result)
+    return result
 
 
 def apply_user_dic(text):
@@ -296,7 +306,9 @@ def apply_user_dic(text):
         matched_text = match.group(0)
         return USER_DIC[matched_text.lower()]
 
-    return USER_DATA_REGEX.sub(replacer, text)
+    result = USER_DATA_REGEX.sub(replacer, text)
+    logger.debug(result)
+    return result
 
 
 def convert_english_to_kana(
@@ -313,7 +325,9 @@ def convert_english_to_kana(
         )
         text = text[word.end() :]
 
-    return output + text
+    result = output + text
+    logger.debug(result)
+    return result
 
 
 def word_to_kana(word, english_word_min_length=settings.english_word_min_length):
@@ -374,15 +388,16 @@ def split_text_by_max_bytes(text, max_bytes_len=settings.batch_max_bytes):
         else:
             if len(buf_text) > 0:
                 if len(buf_text) > max_bytes_len:
-                    print('WARN: batch_max_bytes is too small', file=sys.stderr)
+                    logger.warning('batch_max_bytes is too small')
                 texts.append(buf_text)
             buf_text = split_text
 
     if len(buf_text) > 0:
         if len(buf_text) > max_bytes_len:
-            print('WARN: batch_max_bytes is too small', file=sys.stderr)
+            logger.warning('batch_max_bytes is too small')
         texts.append(buf_text)
 
+    logger.debug(texts)
     return texts
 
 
@@ -407,6 +422,18 @@ def _parse_args():
 
 def main():
     args = _parse_args()
+    log_format = '%(asctime)s %(levelname)s:%(name)s: %(message)s'
+    log_format_debug = (
+        '%(asctime)s %(levelname)s:%(name)s:%(funcName)s:%(lineno)d: %(message)s'
+    )
+    if settings.debug:
+        logging.basicConfig(level=logging.DEBUG, format=log_format_debug)
+    else:
+        logging.basicConfig(level=logging.INFO, format=log_format)
+
+    logger.debug(settings.dict())
+    logger.debug(args)
+
     if args.script is sys.stdin:
         if args.script.isatty():
             return

@@ -73,6 +73,9 @@ class Settings(BaseSettings):
             if APPIMAGE_DIR
             else [str(MAIN_DIR / '.env'), '.env']
         )
+        fields = {
+            'debug': {'env': ['vserver_debug', 'debug']},
+        }
 
         @classmethod
         def parse_env_var(cls, field_name: str, raw_val: str) -> Any:
@@ -82,11 +85,7 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-logging.basicConfig(level=logging.INFO)
-if settings.debug:
-    logging.basicConfig(level=logging.DEBUG, force=True)
-
-logger = logging.getLogger('mqtt')
+logger_mqtt = logging.getLogger('mqtt')
 logger_http = logging.getLogger('http')
 logger_uvicorn = logging.getLogger('uvicorn')
 logger_onnxruntime = logging.getLogger('onnxruntime.onnxruntime')
@@ -94,7 +93,7 @@ logger_onnxruntime.setLevel(logging.WARNING)
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    logger.info('connected')
+    logger_mqtt.info('connected')
     client.publish(settings.mqtt_availability_topic, 'online', retain=True, qos=2)
     for topic in userdata:
         client.subscribe(topic, qos=settings.mqtt_qos)
@@ -102,7 +101,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
 
 def on_message(client, userdata, message):
     payload = message.payload.decode(errors='ignore')
-    logger.debug(payload)
+    logger_mqtt.debug(payload)
     try:
         data = json.loads(payload)
         text = data.get('text')
@@ -127,7 +126,7 @@ def on_message(client, userdata, message):
         shorten_urls = settings.shorten_urls
         speaker_id = settings.speaker_id
 
-    logger.info(text.replace('\n', ' '))
+    logger_mqtt.info(text.replace('\n', ' '))
     try:
         vsay.say(
             text,
@@ -141,15 +140,15 @@ def on_message(client, userdata, message):
             is_threaded=True,
         )
     except Exception as e:
-        logger.error(e)
+        logger_mqtt.error(e)
 
 
 def on_disconnect(client, userdata, flags, reason_code, properties):
-    logger.info('disconnected')
+    logger_mqtt.info('disconnected')
 
 
 def on_connect_fail(client, userdata):
-    logger.error('connection failed')
+    logger_mqtt.error('connection failed')
 
 
 class SayParam(BaseModel):
@@ -291,6 +290,20 @@ def _parse_args():
 
 def main():
     args = _parse_args()
+    log_format = '%(asctime)s %(levelname)s:%(name)s: %(message)s'
+    log_format_debug = (
+        '%(asctime)s %(levelname)s:%(name)s:%(funcName)s:%(lineno)d: %(message)s'
+    )
+    if settings.debug:
+        logging.basicConfig(level=logging.DEBUG, format=log_format_debug)
+    else:
+        logging.basicConfig(level=logging.INFO, format=log_format)
+
+    logger = logging.getLogger(__name__)
+    logger.debug(settings.dict())
+    logger.debug(vsay.settings.dict())
+    logger.debug(args)
+
     if not args.enable_mqtt and not args.serve_http:
         raise ValueError('At least one of --enable-mqtt or --serve-http is required.')
 
