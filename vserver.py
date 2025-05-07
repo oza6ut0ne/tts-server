@@ -88,8 +88,7 @@ settings = Settings()
 logger_mqtt = logging.getLogger('mqtt')
 logger_http = logging.getLogger('http')
 logger_uvicorn = logging.getLogger('uvicorn')
-logger_onnxruntime = logging.getLogger('onnxruntime.onnxruntime')
-logger_onnxruntime.setLevel(logging.WARNING)
+logging.getLogger('asyncio').setLevel(logging.WARNING)
 
 
 def on_connect(client, userdata, flags, reason_code, properties):

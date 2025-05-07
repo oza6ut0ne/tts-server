@@ -94,7 +94,6 @@ class Settings(BaseSettings):
         }
 
 
-logger = logging.getLogger(__name__)
 settings = Settings()
 if Path(settings.alkana_extra_data).is_file():
     alkana.add_external_data(settings.alkana_extra_data)
@@ -110,6 +109,14 @@ if Path(settings.user_dic).is_file():
 else:
     USER_DIC = {}
     USER_DATA_REGEX = None
+
+logger = logging.getLogger(__name__)
+for name in [
+    'voicevox_core_python_api',
+    'onnxruntime.onnxruntime',
+]:
+    logging.getLogger(name).setLevel(logging.WARNING)
+    del name
 
 __queue: queue.Queue | None = None
 __thread: threading.Thread | None = None
