@@ -25,6 +25,7 @@ import queue
 import re
 import subprocess
 import sys
+import tempfile
 import threading
 import traceback
 import wave
@@ -62,7 +63,7 @@ class Settings(BaseSettings):
     alkana_extra_data: str = str(DEFAULT_ALKANA_EXTRA_DATA)
     user_dic: str = str(DEFAULT_USER_DIC)
     play_command: str = 'aplay'
-    lock_file: str = '/tmp/lockfiles/vsay.lock'
+    lock_file: str = str(Path(tempfile.gettempdir()) / 'lockfiles/vsay.lock')
     batch_num_lines: int = 10
     batch_max_bytes: int = 1024
     r: float = 1.0
