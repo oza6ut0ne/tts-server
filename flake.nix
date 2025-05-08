@@ -137,6 +137,9 @@
         in
         {
           packages = rec {
+            default = tts;
+            cuda = tts-cuda;
+
             jsay = pkgs.writeShellApplication {
               name = "jsay";
               runtimeInputs = buildInputsForJsay;
@@ -146,6 +149,7 @@
                 uv run -p ${pkgs.python313} -s ${src}/jsay.py "$@"
               '';
             };
+
             jserver = pkgs.writeShellApplication {
               name = "jserver";
               runtimeInputs = buildInputsForJsay;
@@ -155,6 +159,7 @@
                 uv run -p ${pkgs.python313} -s ${src}/jserver.py "$@"
               '';
             };
+
             vsay = pkgs.writeShellApplication {
               name = "vsay";
               runtimeInputs = buildInputsForVsay;
@@ -164,6 +169,7 @@
                 uv run -p ${pkgs.python313} -s ${src}/vsay.py "$@"
               '';
             };
+
             vserver = pkgs.writeShellApplication {
               name = "vserver";
               runtimeInputs = buildInputsForVsay;
@@ -173,6 +179,7 @@
                 uv run -p ${pkgs.python313} -s ${src}/vserver.py "$@"
               '';
             };
+
             vsay-cuda = pkgs.writeShellApplication {
               name = "vsay";
               runtimeInputs = buildInputsForVsayCuda;
@@ -182,6 +189,7 @@
                 uv run -p 3.13 -s ${src}/vsay.py "$@"
               '';
             };
+
             vserver-cuda = pkgs.writeShellApplication {
               name = "vserver";
               runtimeInputs = buildInputsForVsayCuda;
@@ -191,6 +199,7 @@
                 uv run -p 3.13 -s ${src}/vserver.py "$@"
               '';
             };
+
             jtts = pkgs.writeShellApplication rec {
               name = "jtts";
               runtimeInputs = [
@@ -203,6 +212,7 @@
                 ]
               );
             };
+
             tts = pkgs.writeShellApplication rec {
               name = "tts";
               runtimeInputs = [
@@ -217,7 +227,17 @@
                   vsay
                 ]
               );
+              derivationArgs = {
+                postCheck = ''
+                  ${
+                    (lib.concatMapStringsSep "\n" (
+                      package: "ln -s ${package}/bin/${package.name} $out/bin/"
+                    ) runtimeInputs)
+                  }
+                '';
+              };
             };
+
             tts-cuda = pkgs.writeShellApplication rec {
               name = "tts";
               runtimeInputs = [
@@ -232,6 +252,15 @@
                   vsay-cuda
                 ]
               );
+              derivationArgs = {
+                postCheck = ''
+                  ${
+                    (lib.concatMapStringsSep "\n" (
+                      package: "ln -s ${package}/bin/${package.name} $out/bin/"
+                    ) runtimeInputs)
+                  }
+                '';
+              };
             };
           };
 
