@@ -40,6 +40,26 @@ APPIMAGE_FILE = os.environ.get('APPIMAGE')
 APPIMAGE_DIR = Path(APPIMAGE_FILE).parent if APPIMAGE_FILE else None
 
 
+def _find_config_dir_path():
+    xdg_config_home = os.environ.get('XDG_CONFIG_HOME')
+    if xdg_config_home and (Path(xdg_config_home) / 'tts-server').exists():
+        return Path(xdg_config_home) / 'tts-server'
+    return Path.home() / '.config' / 'tts-server'
+
+
+CONFIG_DIR = _find_config_dir_path()
+
+
+def _find_default_path(rel_path):
+    if (Path('.').resolve() / rel_path).exists():
+        return Path('.').resolve() / rel_path
+    elif APPIMAGE_DIR and (APPIMAGE_DIR / rel_path).exists():
+        return APPIMAGE_DIR / rel_path
+    elif (MAIN_DIR / rel_path).exists():
+        return MAIN_DIR / rel_path
+    return CONFIG_DIR / rel_path
+
+
 class Settings(BaseSettings):
     debug: bool = False
     enable_mqtt: bool = False
@@ -68,11 +88,7 @@ class Settings(BaseSettings):
     class Config:
         env_prefix = 'vserver_'
         env_file_encoding = 'utf-8'
-        env_file = (
-            [str(MAIN_DIR / '.env'), str(APPIMAGE_DIR / '.env'), '.env']
-            if APPIMAGE_DIR
-            else [str(MAIN_DIR / '.env'), '.env']
-        )
+        env_file = _find_default_path('.env')
         fields = {
             'debug': {'env': ['vserver_debug', 'debug']},
         }

@@ -45,16 +45,28 @@ URL_REGEX = re.compile(r'(https?|ftp)(:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+
 SPLIT_TEXT_REGEX = re.compile(r'(?<=[\n　。、！？!?」』)）】》])|(?<=\.\s)')
 
 
-def _create_default_path(rel_path):
+def _find_config_dir_path():
+    xdg_config_home = os.environ.get('XDG_CONFIG_HOME')
+    if xdg_config_home and (Path(xdg_config_home) / 'tts-server').exists():
+        return Path(xdg_config_home) / 'tts-server'
+    return Path.home() / '.config' / 'tts-server'
+
+
+CONFIG_DIR = _find_config_dir_path()
+
+
+def _find_default_path(rel_path):
     if (Path('.').resolve() / rel_path).exists():
         return Path('.').resolve() / rel_path
     elif APPIMAGE_DIR and (APPIMAGE_DIR / rel_path).exists():
         return APPIMAGE_DIR / rel_path
-    return MAIN_DIR / rel_path
+    elif (MAIN_DIR / rel_path).exists():
+        return MAIN_DIR / rel_path
+    return CONFIG_DIR / rel_path
 
 
-DEFAULT_ALKANA_EXTRA_DATA = _create_default_path('alkana_extra_data.csv')
-DEFAULT_USER_DIC = _create_default_path('user_dic.csv')
+DEFAULT_ALKANA_EXTRA_DATA = _find_default_path('alkana_extra_data.csv')
+DEFAULT_USER_DIC = _find_default_path('user_dic.csv')
 
 
 class Settings(BaseSettings):
@@ -78,11 +90,7 @@ class Settings(BaseSettings):
     class Config:
         env_prefix = 'vsay_'
         env_file_encoding = 'utf-8'
-        env_file = (
-            [str(MAIN_DIR / '.env'), str(APPIMAGE_DIR / '.env'), '.env']
-            if APPIMAGE_DIR
-            else [str(MAIN_DIR / '.env'), '.env']
-        )
+        env_file = _find_default_path('.env')
         fields = {
             'debug': {'env': ['vsay_debug', 'debug']},
             'open_jtalk_dic': {'env': ['vsay_open_jtalk_dic', 'open_jtalk_dic']},
