@@ -89,12 +89,15 @@ class Settings(BaseSettings):
 
 settings = Settings()
 if Path(settings.alkana_extra_data).is_file():
-    alkana.add_external_data(settings.alkana_extra_data)
+    with open(settings.alkana_extra_data, newline='', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        alkana.data.data.update({r[0].lower(): r[1] for r in reader if len(r) == 2})
+        del reader
 
 if Path(settings.user_dic).is_file():
-    with open(settings.user_dic) as f:
+    with open(settings.user_dic, newline='', encoding='utf-8') as f:
         reader = csv.reader(f)
-        USER_DIC = {r[0].lower(): r[1] for r in reader}
+        USER_DIC = {r[0].lower(): r[1] for r in reader if len(r) == 2}
         USER_DATA_REGEX = re.compile(
             '|'.join(re.escape(k) for k in USER_DIC.keys()), re.IGNORECASE
         )
