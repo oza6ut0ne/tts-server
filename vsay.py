@@ -100,6 +100,7 @@ class Settings(BaseSettings):
             'user_dic': {'env': ['vsay_user_dic', 'user_dic']},
             'play_command': {'env': ['vsay_play_command', 'play_command']},
             'lock_file': {'env': ['vsay_lock_file', 'lock_file']},
+            'speaker_id': {'env': ['vsay_speaker_id', 'speaker_id']},
         }
 
 

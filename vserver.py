@@ -91,6 +91,7 @@ class Settings(BaseSettings):
         env_file = _find_default_path('.env')
         fields = {
             'debug': {'env': ['vserver_debug', 'debug']},
+            'speaker_id': {'env': ['vserver_speaker_id', 'speaker_id']},
         }
 
         @classmethod
