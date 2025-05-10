@@ -15,4 +15,5 @@ result
 *.AppImage
 *.wav
 
+/.venv*
 __pycache__
