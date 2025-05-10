@@ -325,9 +325,11 @@ def convert_english_to_kana(
     # https://mackro.blog.jp/archives/8479732.html
     output = ''
     while word := re.search(r'[a-zA-Z]{' f'{english_word_min_length}' r',} ?', text):
-        output += text[: word.start()] + word_to_kana(
-            word.group().rstrip(), english_word_min_length
-        )
+        converted = word_to_kana(word.group().rstrip(), english_word_min_length)
+        if word.group() == f'{converted} ':
+            converted += ' '
+
+        output += text[: word.start()] + converted
         text = text[word.end() :]
 
     result = output + text
@@ -349,7 +351,7 @@ def word_to_kana(word, english_word_min_length=settings.english_word_min_length)
             # r',})(?:[A-Z][a-z]{'
             # f'{english_word_min_length - 1}'
             # r',})+',
-            r'(?:[A-Za-z][a-z]+)(?:[A-Z][a-z]+)+',
+            r'(?:[A-Za-z][a-z]+)(?:[A-Z](?:[a-z]+|[A-Z]+))+',
             word,
         ):
             # m = re.match(r'[A-Z][a-z]{' f'{english_word_min_length - 1}' r',}', word)
