@@ -107,11 +107,12 @@
           makeSetupFunction = packages: ''
             setup() {
               echo Downloading dependencies...
+              export ONLY_SYNC=1
             ${(lib.concatMapStringsSep "\n" (package: "  ${package}/bin/${package.name}") packages)}
               echo Done!
             }
           '';
-          makeLauncherScript = runtimeInputs: setupInputs: ''
+          makeLauncherScript = runtimeInputs: ''
             COMMANDS=${(makeSubCommands runtimeInputs)}
             progname=$(basename "''${ARGV0-$0}")
 
@@ -119,7 +120,7 @@
               printf '%s\n' "''${COMMANDS[@]}" | grep -qx "$1" 2>/dev/null
             }
 
-            ${(makeSetupFunction setupInputs)}
+            ${(makeSetupFunction runtimeInputs)}
             ${(lib.concatMapStrings makeSubFunction runtimeInputs)}
 
             if is_valid_command "$progname"; then
@@ -144,6 +145,10 @@
               name = "jsay";
               runtimeInputs = buildInputsForJsay;
               text = ''
+                if [ -n "''${ONLY_SYNC-}" ]; then
+                  uv sync -p ${pkgs.python313} --script ${src}/jsay.py
+                  exit
+                fi
                 export HTSVOICE=''${HTSVOICE:-${HTSVOICE}}
                 export OPEN_JTALK_DIC=''${OPEN_JTALK_DIC:-${OPEN_JTALK_DIC}}
                 uv run -p ${pkgs.python313} -s ${src}/jsay.py "$@"
@@ -154,6 +159,10 @@
               name = "jserver";
               runtimeInputs = buildInputsForJsay;
               text = ''
+                if [ -n "''${ONLY_SYNC-}" ]; then
+                  uv sync -p ${pkgs.python313} --script ${src}/jserver.py
+                  exit
+                fi
                 export HTSVOICE=''${HTSVOICE:-${HTSVOICE}}
                 export OPEN_JTALK_DIC=''${OPEN_JTALK_DIC:-${OPEN_JTALK_DIC}}
                 uv run -p ${pkgs.python313} -s ${src}/jserver.py "$@"
@@ -164,6 +173,10 @@
               name = "vsay";
               runtimeInputs = buildInputsForVsay;
               text = ''
+                if [ -n "''${ONLY_SYNC-}" ]; then
+                  uv sync -p ${pkgs.python313} --script ${src}/vsay.py
+                  exit
+                fi
                 export OPEN_JTALK_DIC=''${OPEN_JTALK_DIC:-${OPEN_JTALK_DIC}}
                 export LD_LIBRARY_PATH=''${LD_LIBRARY_PATH-}:${LD_LIBRARY_PATH_FOR_VSAY}
                 uv run -p ${pkgs.python313} -s ${src}/vsay.py "$@"
@@ -174,6 +187,10 @@
               name = "vserver";
               runtimeInputs = buildInputsForVsay;
               text = ''
+                if [ -n "''${ONLY_SYNC-}" ]; then
+                  uv sync -p ${pkgs.python313} --script ${src}/vserver.py
+                  exit
+                fi
                 export OPEN_JTALK_DIC=''${OPEN_JTALK_DIC:-${OPEN_JTALK_DIC}}
                 export LD_LIBRARY_PATH=''${LD_LIBRARY_PATH-}:${LD_LIBRARY_PATH_FOR_VSAY}
                 uv run -p ${pkgs.python313} -s ${src}/vserver.py "$@"
@@ -184,9 +201,13 @@
               name = "vsay";
               runtimeInputs = buildInputsForVsayCuda;
               text = ''
+                if [ -n "''${ONLY_SYNC-}" ]; then
+                  uv sync -p 3.13.2 --script ${src}/vsay.py
+                  exit
+                fi
                 export OPEN_JTALK_DIC=''${OPEN_JTALK_DIC:-${OPEN_JTALK_DIC}}
                 export LD_LIBRARY_PATH=''${LD_LIBRARY_PATH-}:${LD_LIBRARY_PATH_FOR_VSAY_CUDA}
-                uv run -p 3.13 -s ${src}/vsay.py "$@"
+                uv run -p 3.13.2 -s ${src}/vsay.py "$@"
               '';
             };
 
@@ -194,9 +215,13 @@
               name = "vserver";
               runtimeInputs = buildInputsForVsayCuda;
               text = ''
+                if [ -n "''${ONLY_SYNC-}" ]; then
+                  uv sync -p 3.13.2 --script ${src}/vserver.py
+                  exit
+                fi
                 export OPEN_JTALK_DIC=''${OPEN_JTALK_DIC:-${OPEN_JTALK_DIC}}
                 export LD_LIBRARY_PATH=''${LD_LIBRARY_PATH-}:${LD_LIBRARY_PATH_FOR_VSAY_CUDA}
-                uv run -p 3.13 -s ${src}/vserver.py "$@"
+                uv run -p 3.13.2 -s ${src}/vserver.py "$@"
               '';
             };
 
@@ -206,11 +231,7 @@
                 jsay
                 jserver
               ];
-              text = (
-                makeLauncherScript runtimeInputs [
-                  jsay
-                ]
-              );
+              text = (makeLauncherScript runtimeInputs);
             };
 
             tts = pkgs.writeShellApplication rec {
@@ -221,12 +242,7 @@
                 vsay
                 vserver
               ];
-              text = (
-                makeLauncherScript runtimeInputs [
-                  jsay
-                  vsay
-                ]
-              );
+              text = (makeLauncherScript runtimeInputs);
               derivationArgs = {
                 postCheck = ''
                   ${
@@ -246,12 +262,7 @@
                 vsay-cuda
                 vserver-cuda
               ];
-              text = (
-                makeLauncherScript runtimeInputs [
-                  jsay
-                  vsay-cuda
-                ]
-              );
+              text = (makeLauncherScript runtimeInputs);
               derivationArgs = {
                 postCheck = ''
                   ${
