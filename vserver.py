@@ -142,7 +142,7 @@ def on_message(client, userdata, message):
         shorten_urls = settings.shorten_urls
         speaker_id = settings.speaker_id
 
-    logger_mqtt.info(text.replace('\n', ' '))
+    logger_mqtt.info(text.replace('\n', '⏎'))
     try:
         vsay.say(
             text,
@@ -193,7 +193,7 @@ async def get_say(
     speaker_id: int = settings.speaker_id,
 ):
     logger_http.debug(locals())
-    logger_uvicorn.info(text.replace('\n', ' '))
+    logger_uvicorn.info(text.replace('\n', '⏎'))
     try:
         vsay.say(
             text,
@@ -246,7 +246,7 @@ async def get_audio(
     speaker_id: int = settings.speaker_id,
 ):
     logger_http.debug(locals())
-    logger_uvicorn.info(text.replace('\n', ' '))
+    logger_uvicorn.info(text.replace('\n', '⏎'))
     try:
         audio_bytes = vsay.generate_audio_bytes(
             text,

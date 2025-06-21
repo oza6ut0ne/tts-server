@@ -127,7 +127,7 @@ def on_message(client, userdata, message):
         use_user_dic = settings.use_user_dic
         shorten_urls = settings.shorten_urls
 
-    logger_mqtt.info(text.replace('\n', ' '))
+    logger_mqtt.info(text.replace('\n', '⏎'))
     try:
         jsay.say(
             text,
@@ -175,7 +175,7 @@ async def get_say(
     shorten_urls: bool = settings.shorten_urls,
 ):
     logger_http.debug(locals())
-    logger_uvicorn.info(text.replace('\n', ' '))
+    logger_uvicorn.info(text.replace('\n', '⏎'))
     try:
         jsay.say(
             text,
@@ -225,7 +225,7 @@ async def get_audio(
     shorten_urls: bool = settings.shorten_urls,
 ):
     logger_http.debug(locals())
-    logger_uvicorn.info(text.replace('\n', ' '))
+    logger_uvicorn.info(text.replace('\n', '⏎'))
     try:
         audio_bytes = jsay.generate_audio_bytes(
             text,
