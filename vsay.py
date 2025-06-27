@@ -4,6 +4,7 @@
 # dependencies = [
 #   "alkana==0.0.3",
 #   "fasteners==0.18",
+#   "kanalizer==0.1.1",
 #   "pydantic==1.10.19",
 #   "python-dotenv==1.0.1",
 #   "voicevox-core",
@@ -33,6 +34,7 @@ from pathlib import Path
 
 import alkana
 import fasteners
+import kanalizer
 from pydantic import BaseSettings
 from voicevox_core import VoicevoxCore
 
@@ -65,14 +67,14 @@ def _find_default_path(rel_path):
     return CONFIG_DIR / rel_path
 
 
-DEFAULT_ALKANA_EXTRA_DATA = _find_default_path('alkana_extra_data.csv')
+DEFAULT_ENGLISH_DIC = _find_default_path('english_dic.csv')
 DEFAULT_USER_DIC = _find_default_path('user_dic.csv')
 
 
 class Settings(BaseSettings):
     debug: bool = False
     open_jtalk_dic: str = str(MAIN_DIR / 'open_jtalk_dic_utf_8-1.11')
-    alkana_extra_data: str = str(DEFAULT_ALKANA_EXTRA_DATA)
+    english_dic: str = str(DEFAULT_ENGLISH_DIC)
     user_dic: str = str(DEFAULT_USER_DIC)
     play_command: str = 'aplay'
     lock_file: str = str(Path(tempfile.gettempdir()) / 'lockfiles/vsay.lock')
@@ -84,6 +86,9 @@ class Settings(BaseSettings):
     english_to_kana: bool = True
     use_user_dic: bool = True
     shorten_urls: bool = False
+    use_alkana: bool = True
+    use_kanalizer: bool = True
+    debug_kanalizer: bool = False
     cpu_num_threads: int = 0
     speaker_id: int = 3
 
@@ -94,34 +99,47 @@ class Settings(BaseSettings):
         fields = {
             'debug': {'env': ['vsay_debug', 'debug']},
             'open_jtalk_dic': {'env': ['vsay_open_jtalk_dic', 'open_jtalk_dic']},
-            'alkana_extra_data': {
-                'env': ['vsay_alkana_extra_data', 'alkana_extra_data']
-            },
+            'english_dic': {'env': ['vsay_english_dic', 'english_dic']},
             'user_dic': {'env': ['vsay_user_dic', 'user_dic']},
             'play_command': {'env': ['vsay_play_command', 'play_command']},
             'lock_file': {'env': ['vsay_lock_file', 'lock_file']},
+            'use_alkana': {'env': ['vsay_use_alkana', 'use_alkana']},
+            'use_kanalizer': {'env': ['vsay_use_kanalizer', 'use_kanalizer']},
+            'debug_kanalizer': {'env': ['jsay_debug_kanalizer', 'debug_kanalizer']},
             'speaker_id': {'env': ['vsay_speaker_id', 'speaker_id']},
         }
 
 
 settings = Settings()
-if Path(settings.alkana_extra_data).is_file():
-    with open(settings.alkana_extra_data, newline='', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        alkana.data.data.update({r[0].lower(): r[1] for r in reader if len(r) == 2})
-        del reader
 
+ENGLISH_DIC = {}
+if settings.use_alkana:
+    ENGLISH_DIC.update(alkana.data.data)
+
+if Path(settings.english_dic).is_file():
+    with open(settings.english_dic, newline='', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        tmp_dict = {}
+        for r in reader:
+            if len(r) == 2 and (key := r[0].lower()) not in tmp_dict:
+                tmp_dict[key] = r[1]
+        ENGLISH_DIC.update(tmp_dict)
+        del reader, tmp_dict
+
+USER_DIC = {}
+USER_DATA_REGEX = None
 if Path(settings.user_dic).is_file():
     with open(settings.user_dic, newline='', encoding='utf-8') as f:
         reader = csv.reader(f)
-        USER_DIC = {r[0].lower(): r[1] for r in reader if len(r) == 2}
+        tmp_dict = {}
+        for r in reader:
+            if len(r) == 2 and (key := r[0].lower()) not in tmp_dict:
+                tmp_dict[key] = r[1]
+        USER_DIC.update(tmp_dict)
         USER_DATA_REGEX = re.compile(
             '|'.join(re.escape(k) for k in USER_DIC.keys()), re.IGNORECASE
         )
-        del reader
-else:
-    USER_DIC = {}
-    USER_DATA_REGEX = None
+        del reader, tmp_dict
 
 logger = logging.getLogger(__name__)
 for name in [
@@ -356,7 +374,7 @@ def word_to_kana(word, english_word_min_length=settings.english_word_min_length)
     if not isinstance(english_word_min_length, int) or english_word_min_length < 1:
         raise ValueError('english_word_min_length must be positive integer')
 
-    if kana := alkana.get_kana(word.lower()):
+    if kana := ENGLISH_DIC.get(word.lower()):
         return kana
     else:
         if re.fullmatch(
@@ -369,6 +387,23 @@ def word_to_kana(word, english_word_min_length=settings.english_word_min_length)
             first = word_to_kana(m.group())
             second = word_to_kana(word[m.end() :])
             return first + second
+
+        if settings.use_kanalizer:
+            if re.fullmatch('[A-Z]{3}|w+', word):
+                return word
+            try:
+                kanalizer_result = kanalizer.convert(
+                    word.lower(), on_incomplete='error', on_invalid_input='warning'
+                )
+            except kanalizer.IncompleteConversionError as e:
+                if settings.debug_kanalizer:
+                    logger.debug('[kanalizer] %s -> %s', word, e)
+                return word
+
+            if settings.debug_kanalizer:
+                logger.debug('[kanalizer] %s -> %s', word, kanalizer_result)
+            return kanalizer_result
+
         return word
 
 

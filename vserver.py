@@ -5,6 +5,7 @@
 #   "alkana==0.0.3",
 #   "fasteners==0.18",
 #   "fastapi==0.101.0",
+#   "kanalizer==0.1.1",
 #   "paho-mqtt==2.1.0",
 #   "pydantic==1.10.19",
 #   "python-dotenv==1.0.1",
@@ -84,6 +85,9 @@ class Settings(BaseSettings):
     # speaker_id: int = 3
     # speaker_id: int = 7
     # speaker_id: int = 69
+    # speaker_id: int = 2
+    # speaker_id: int = 8
+    # speaker_id: int = 29
 
     class Config:
         env_prefix = 'vserver_'

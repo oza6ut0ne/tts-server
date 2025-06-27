@@ -4,6 +4,7 @@
 #   "alkana==0.0.3",
 #   "fasteners==0.18",
 #   "fastapi==0.101.0",
+#   "kanalizer==0.1.1",
 #   "paho-mqtt==2.1.0",
 #   "pydantic==1.10.19",
 #   "python-dotenv==1.0.1",
