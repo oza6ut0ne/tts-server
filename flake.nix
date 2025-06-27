@@ -67,7 +67,7 @@
             src
             pkgs.python313
             pkgs.uv
-            pkgs.alsa-utils
+            pkgs.pulseaudio
             pkgsNixdot.open-jtalk
           ];
           buildInputsForJsay = buildInputsBase ++ [
