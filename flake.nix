@@ -232,6 +232,15 @@
                 jserver
               ];
               text = (makeLauncherScript runtimeInputs);
+              derivationArgs = {
+                postCheck = ''
+                  ${
+                    (lib.concatMapStringsSep "\n" (
+                      package: "ln -s ${package}/bin/${package.name} $out/bin/"
+                    ) runtimeInputs)
+                  }
+                '';
+              };
             };
 
             tts = pkgs.writeShellApplication rec {
