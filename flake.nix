@@ -2,10 +2,17 @@
   description = "Text-to-Speech server";
 
   inputs = {
-    flake-parts.url = "github:hercules-ci/flake-parts";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nixpkgs-23_11.url = "github:NixOS/nixpkgs/release-23.11";
-    nixdot.url = "github:oza6ut0ne/nixdot";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
+    nixdot = {
+      url = "github:oza6ut0ne/nixdot";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
+    };
   };
 
   outputs =
