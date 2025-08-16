@@ -76,8 +76,9 @@ class Settings(BaseSettings):
     open_jtalk_dic: str = str(MAIN_DIR / 'open_jtalk_dic_utf_8-1.11')
     english_dic: str = str(DEFAULT_ENGLISH_DIC)
     user_dic: str = str(DEFAULT_USER_DIC)
-    play_command: str = 'paplay'
     lock_file: str = str(Path(tempfile.gettempdir()) / 'lockfiles/vsay.lock')
+    play_command: str = 'paplay'
+    play_timeout: int|None = 120
     batch_num_lines: int = 10
     batch_max_bytes: int = 1024
     r: float = 1.0
@@ -317,7 +318,7 @@ def play_sound(audio_bytes):
     )
 
     try:
-        p_play.communicate(input=audio_bytes, timeout=120)
+        p_play.communicate(input=audio_bytes, timeout=settings.play_timeout)
     except subprocess.TimeoutExpired as e:
         p_play.terminate()
         logger.error(e)

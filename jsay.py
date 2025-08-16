@@ -69,8 +69,10 @@ class Settings(BaseSettings):
     open_jtalk_dic: str = str(MAIN_DIR / 'open_jtalk_dic_utf_8-1.11')
     english_dic: str = str(DEFAULT_ENGLISH_DIC)
     user_dic: str = str(DEFAULT_USER_DIC)
-    play_command: str = 'paplay'
     lock_file: str = str(Path(tempfile.gettempdir()) / 'lockfiles/jsay.lock')
+    play_command: str = 'paplay'
+    play_timeout: int | None = 120
+    open_jtalk_timeout: int | None = 60
     batch_num_lines: int = 10
     batch_max_bytes: int = 1024
     r: float = 1.0
@@ -282,7 +284,9 @@ def generate_audio_bytes(
             )
 
             try:
-                audio_bytes, _ = p_jtalk.communicate(timeout=60)
+                audio_bytes, _ = p_jtalk.communicate(
+                    timeout=settings.open_jtalk_timeout
+                )
                 if len(audio_bytes) > 0:
                     results.append(audio_bytes)
             except subprocess.TimeoutExpired as e:
@@ -302,7 +306,7 @@ def play_sound(audio_bytes):
     )
 
     try:
-        p_play.communicate(input=audio_bytes, timeout=120)
+        p_play.communicate(input=audio_bytes, timeout=settings.play_timeout)
     except subprocess.TimeoutExpired as e:
         p_play.terminate()
         logger.error(e)
