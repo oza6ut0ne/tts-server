@@ -259,7 +259,6 @@ def generate_audio_bytes(
             if len(text.strip()) == 0:
                 continue
 
-            cmd_echo = ['echo', text]
             cmd_jtalk = [
                 'open_jtalk',
                 '-x',
@@ -274,17 +273,17 @@ def generate_audio_bytes(
                 '{:f}'.format(fm),
             ]
 
-            p_echo = subprocess.Popen(cmd_echo, shell=False, stdout=subprocess.PIPE)
             p_jtalk = subprocess.Popen(
                 cmd_jtalk,
                 shell=False,
-                stdin=p_echo.stdout,
+                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
             )
 
             try:
                 audio_bytes, _ = p_jtalk.communicate(
+                    input=text.encode(),
                     timeout=settings.open_jtalk_timeout
                 )
                 if len(audio_bytes) > 0:
