@@ -114,7 +114,8 @@ logging.getLogger('asyncio').setLevel(logging.WARNING)
 
 def on_connect(client, userdata, flags, reason_code, properties):
     logger_mqtt.info('connected')
-    client.publish(settings.mqtt_availability_topic, 'online', retain=True, qos=2)
+    if settings.mqtt_availability_topic:
+        client.publish(settings.mqtt_availability_topic, 'online', retain=True, qos=2)
     for topic in userdata:
         client.subscribe(topic, qos=settings.mqtt_qos)
 
@@ -342,7 +343,10 @@ def main():
         mqttc.on_connect = on_connect
         mqttc.on_connect_fail = on_connect_fail
         mqttc.on_disconnect = on_disconnect
-        mqttc.will_set(settings.mqtt_availability_topic, 'offline', retain=True, qos=2)
+        if settings.mqtt_availability_topic:
+            mqttc.will_set(
+                settings.mqtt_availability_topic, 'offline', retain=True, qos=2
+            )
 
         try:
             mqttc.connect(args.mqtt_host, args.mqtt_port, keepalive=600)
