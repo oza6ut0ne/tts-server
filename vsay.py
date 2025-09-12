@@ -5,8 +5,11 @@
 #   "alkana==0.0.3",
 #   "fasteners==0.18",
 #   "kanalizer==0.1.1",
+#   "numpy<2.3.0",  # https://github.com/bastibe/SoundCard/issues/190
 #   "pydantic==1.10.19",
 #   "python-dotenv==1.0.1",
+#   "soundcard==0.4.4",
+#   "soundfile==0.13.1",
 #   "voicevox-core",
 # ]
 #
@@ -23,6 +26,7 @@ import csv
 import io
 import logging
 import os
+import platform
 import queue
 import re
 import subprocess
@@ -36,6 +40,7 @@ from pathlib import Path
 import alkana
 import fasteners
 import kanalizer
+import soundfile as sf
 from pydantic import BaseSettings
 from voicevox_core import VoicevoxCore
 
@@ -70,6 +75,10 @@ def _find_default_path(rel_path):
 
 DEFAULT_ENGLISH_DIC = _find_default_path('english_dic.csv')
 DEFAULT_USER_DIC = _find_default_path('user_dic.csv')
+if platform.system() == 'Linux':
+    DEFAULT_PLAY_COMMAND = 'paplay'
+else:
+    DEFAULT_PLAY_COMMAND = ''
 
 
 class Settings(BaseSettings):
@@ -78,8 +87,9 @@ class Settings(BaseSettings):
     english_dic: str = str(DEFAULT_ENGLISH_DIC)
     user_dic: str = str(DEFAULT_USER_DIC)
     lock_file: str = str(Path(tempfile.gettempdir()) / 'lockfiles/vsay.lock')
-    play_command: str|list[str] = 'paplay'
-    play_timeout: int|None = 120
+    play_command: str | list[str] = DEFAULT_PLAY_COMMAND
+    play_timeout: int | None = 120
+    speaker_idx: int | None = None
     batch_num_lines: int = 10
     batch_max_bytes: int = 1024
     r: float = 1.0
@@ -103,8 +113,9 @@ class Settings(BaseSettings):
             'open_jtalk_dic': {'env': ['vsay_open_jtalk_dic', 'open_jtalk_dic']},
             'english_dic': {'env': ['vsay_english_dic', 'english_dic']},
             'user_dic': {'env': ['vsay_user_dic', 'user_dic']},
-            'play_command': {'env': ['vsay_play_command', 'play_command']},
             'lock_file': {'env': ['vsay_lock_file', 'lock_file']},
+            'play_command': {'env': ['vsay_play_command', 'play_command']},
+            'speaker_idx': {'env': ['vsay_speaker_idx', 'speaker_idx']},
             'use_alkana': {'env': ['vsay_use_alkana', 'use_alkana']},
             'use_kanalizer': {'env': ['vsay_use_kanalizer', 'use_kanalizer']},
             'debug_kanalizer': {'env': ['jsay_debug_kanalizer', 'debug_kanalizer']},
@@ -309,9 +320,24 @@ def generate_audio_bytes(
 
 
 @fasteners.interprocess_locked(settings.lock_file)
-def play_sound(audio_bytes):
+def play_sound(
+    audio_bytes,
+    command=settings.play_command,
+    timeout=settings.play_timeout,
+    speaker_idx=settings.speaker_idx,
+):
+    if command:
+        play_sound_with_external_command(audio_bytes, command, timeout)
+    else:
+        play_sound_with_soundcard(audio_bytes, speaker_idx)
+
+
+@fasteners.interprocess_locked(settings.lock_file)
+def play_sound_with_external_command(
+    audio_bytes, command=settings.play_command, timeout=settings.play_timeout
+):
     p_play = subprocess.Popen(
-        settings.play_command,
+        command,
         shell=False,
         stdin=subprocess.PIPE,
         stdout=subprocess.DEVNULL,
@@ -319,10 +345,24 @@ def play_sound(audio_bytes):
     )
 
     try:
-        p_play.communicate(input=audio_bytes, timeout=settings.play_timeout)
+        p_play.communicate(input=audio_bytes, timeout=timeout)
     except subprocess.TimeoutExpired as e:
         p_play.terminate()
         logger.error(e)
+
+
+@fasteners.interprocess_locked(settings.lock_file)
+def play_sound_with_soundcard(audio_bytes, speaker_idx=settings.speaker_idx):
+    # lazily importing soundcard because it is slow
+    import soundcard as sc
+
+    frames, samplerate = sf.read(io.BytesIO(audio_bytes))
+    if speaker_idx is None:
+        speaker = sc.default_speaker()
+    else:
+        speaker = sc.all_speakers()[speaker_idx]
+
+    speaker.play(frames, samplerate)
 
 
 def remove_bad_characters(text):
@@ -492,6 +532,10 @@ def main():
 
     logger.debug(settings.dict())
     logger.debug(args)
+    if settings.debug and not settings.play_command:
+        # lazily importing soundcard because it is slow
+        import soundcard as sc
+        logger.debug('speakers: %s', sc.all_speakers())
 
     if args.script is sys.stdin:
         if args.script.isatty():

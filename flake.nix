@@ -81,10 +81,12 @@
             src
             pkgs.python313
             pkgs.uv
+            pkgs.libsndfile
             pkgs.pulseaudio
             pkgsNixdot.open-jtalk
           ];
           buildInputsForJsay = buildInputsBase ++ [
+            pkgs.stdenv.cc.cc
             htsvoice-tohoku-f01
           ];
           buildInputsForVsay = buildInputsBase ++ [
@@ -105,6 +107,7 @@
 
           OPEN_JTALK_DIC = "${pkgsNixdot.open-jtalk}/dic";
           HTSVOICE = "${htsvoice-tohoku-f01.out}/tohoku-f01-angry.htsvoice";
+          LD_LIBRARY_PATH_FOR_JSAY = pkgs.lib.makeLibraryPath buildInputsForJsay;
           LD_LIBRARY_PATH_FOR_VSAY = pkgs.lib.makeLibraryPath buildInputsForVsay;
           LD_LIBRARY_PATH_FOR_VSAY_CUDA =
             pkgs.lib.makeLibraryPath buildInputsForVsayCuda
@@ -165,6 +168,7 @@
                 fi
                 export HTSVOICE=''${HTSVOICE:-${HTSVOICE}}
                 export OPEN_JTALK_DIC=''${OPEN_JTALK_DIC:-${OPEN_JTALK_DIC}}
+                export LD_LIBRARY_PATH=''${LD_LIBRARY_PATH-}:${LD_LIBRARY_PATH_FOR_JSAY}
                 uv run -p ${pkgs.python313} -s ${src}/jsay.py "$@"
               '';
             };
@@ -179,6 +183,7 @@
                 fi
                 export HTSVOICE=''${HTSVOICE:-${HTSVOICE}}
                 export OPEN_JTALK_DIC=''${OPEN_JTALK_DIC:-${OPEN_JTALK_DIC}}
+                export LD_LIBRARY_PATH=''${LD_LIBRARY_PATH-}:${LD_LIBRARY_PATH_FOR_JSAY}
                 uv run -p ${pkgs.python313} -s ${src}/jserver.py "$@"
               '';
             };

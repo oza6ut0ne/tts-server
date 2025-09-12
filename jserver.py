@@ -5,9 +5,12 @@
 #   "fasteners==0.18",
 #   "fastapi==0.101.0",
 #   "kanalizer==0.1.1",
+#   "numpy<2.3.0",  # https://github.com/bastibe/SoundCard/issues/190
 #   "paho-mqtt==2.1.0",
 #   "pydantic==1.10.19",
 #   "python-dotenv==1.0.1",
+#   "soundcard==0.4.4",
+#   "soundfile==0.13.1",
 #   "uvicorn==0.23.2",
 # ]
 # ///
