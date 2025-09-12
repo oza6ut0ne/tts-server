@@ -87,6 +87,7 @@ class Settings(BaseSettings):
     english_dic: str = str(DEFAULT_ENGLISH_DIC)
     user_dic: str = str(DEFAULT_USER_DIC)
     lock_file: str = str(Path(tempfile.gettempdir()) / 'lockfiles/vsay.lock')
+    pulse_server: str | None = None
     play_command: str | list[str] = DEFAULT_PLAY_COMMAND
     play_timeout: int | None = 120
     speaker_idx: int | None = None
@@ -114,6 +115,7 @@ class Settings(BaseSettings):
             'english_dic': {'env': ['vsay_english_dic', 'english_dic']},
             'user_dic': {'env': ['vsay_user_dic', 'user_dic']},
             'lock_file': {'env': ['vsay_lock_file', 'lock_file']},
+            'pulse_server': {'env': ['vsay_pulse_server', 'pulse_server']},
             'play_command': {'env': ['vsay_play_command', 'play_command']},
             'speaker_idx': {'env': ['vsay_speaker_idx', 'speaker_idx']},
             'use_alkana': {'env': ['vsay_use_alkana', 'use_alkana']},
@@ -124,6 +126,8 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+if settings.pulse_server is not None and os.environ.get('PULSE_SERVER') is None:
+    os.environ['PULSE_SERVER'] = settings.pulse_server
 
 ENGLISH_DIC = {}
 if settings.use_alkana:
