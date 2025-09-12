@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     english_dic: str = str(DEFAULT_ENGLISH_DIC)
     user_dic: str = str(DEFAULT_USER_DIC)
     lock_file: str = str(Path(tempfile.gettempdir()) / 'lockfiles/jsay.lock')
-    play_command: str = 'paplay'
+    play_command: str|list[str] = 'paplay'
     play_timeout: int | None = 120
     open_jtalk_timeout: int | None = 60
     batch_num_lines: int = 10

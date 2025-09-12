@@ -12,8 +12,9 @@
 #
 # [tool.uv.sources]
 # voicevox-core = [
-#   { url = "https://github.com/VOICEVOX/voicevox_core/releases/download/0.15.7/voicevox_core-0.15.7+cpu-cp38-abi3-linux_x86_64.whl", marker = "platform_machine == 'x86_64'"},
-#   { url = "https://github.com/VOICEVOX/voicevox_core/releases/download/0.15.7/voicevox_core-0.15.7+cpu-cp38-abi3-linux_aarch64.whl", marker = "platform_machine != 'x86_64'"},
+#   { url = "https://github.com/VOICEVOX/voicevox_core/releases/download/0.15.7/voicevox_core-0.15.7+cpu-cp38-abi3-linux_x86_64.whl", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'"},
+#   { url = "https://github.com/VOICEVOX/voicevox_core/releases/download/0.15.7/voicevox_core-0.15.7+cpu-cp38-abi3-linux_aarch64.whl", marker = "platform_machine != 'x86_64' and sys_platform == 'linux'"},
+#   { url = "https://github.com/VOICEVOX/voicevox_core/releases/download/0.15.7/voicevox_core-0.15.7+cpu-cp38-abi3-win_amd64.whl", marker = "sys_platform != 'linux'"},
 # ]
 # ///
 
@@ -77,7 +78,7 @@ class Settings(BaseSettings):
     english_dic: str = str(DEFAULT_ENGLISH_DIC)
     user_dic: str = str(DEFAULT_USER_DIC)
     lock_file: str = str(Path(tempfile.gettempdir()) / 'lockfiles/vsay.lock')
-    play_command: str = 'paplay'
+    play_command: str|list[str] = 'paplay'
     play_timeout: int|None = 120
     batch_num_lines: int = 10
     batch_max_bytes: int = 1024
