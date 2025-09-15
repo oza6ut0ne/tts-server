@@ -5,10 +5,9 @@
 #   "alkana==0.0.3",
 #   "fasteners==0.18",
 #   "kanalizer==0.1.1",
-#   "numpy<2.3.0",  # https://github.com/bastibe/SoundCard/issues/190
 #   "pydantic==1.10.19",
 #   "python-dotenv==1.0.1",
-#   "soundcard==0.4.4",
+#   "soundcard==0.4.5",
 #   "soundfile==0.13.1",
 #   "voicevox-core",
 # ]
