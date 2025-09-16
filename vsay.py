@@ -165,6 +165,9 @@ for name in [
     logging.getLogger(name).setLevel(logging.WARNING)
     del name
 
+if not settings.debug:
+    logging.getLogger('voicevox_core').setLevel(logging.WARNING)
+
 __queue: queue.Queue | None = None
 __thread: threading.Thread | None = None
 __core: VoicevoxCore | None = None
@@ -322,7 +325,6 @@ def generate_audio_bytes(
     return join_audio_bytes_list(results)
 
 
-@fasteners.interprocess_locked(settings.lock_file)
 def play_sound(
     audio_bytes,
     command=settings.play_command,

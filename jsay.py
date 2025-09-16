@@ -307,7 +307,6 @@ def generate_audio_bytes(
     return join_audio_bytes_list(results)
 
 
-@fasteners.interprocess_locked(settings.lock_file)
 def play_sound(
     audio_bytes,
     command=settings.play_command,
