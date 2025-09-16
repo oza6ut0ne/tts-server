@@ -445,7 +445,7 @@ def word_to_kana(word, english_word_min_length=settings.english_word_min_length)
             except kanalizer.IncompleteConversionError as e:
                 if settings.debug_kanalizer:
                     logger.debug('[kanalizer] %s -> %s', word, e)
-                return word
+                return e.incomplete_output
 
             if settings.debug_kanalizer:
                 logger.debug('[kanalizer] %s -> %s', word, kanalizer_result)
