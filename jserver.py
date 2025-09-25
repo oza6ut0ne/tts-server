@@ -165,6 +165,19 @@ class SayParam(BaseModel):
     shorten_urls: bool = settings.shorten_urls
 
 
+class OpenAISpeechParam(BaseModel):
+    input: str
+    model: str = "dummy"
+    voice: str = "dummy"
+    response_format: str = "wav"
+    speed: float = settings.r
+    fm: float = settings.fm
+    english_word_min_length: int = settings.english_word_min_length
+    english_to_kana: bool = settings.english_to_kana
+    use_user_dic: bool = settings.use_user_dic
+    shorten_urls: bool = settings.shorten_urls
+
+
 app = FastAPI()
 
 
@@ -255,6 +268,27 @@ async def post_audio(param: SayParam):
         audio_bytes = jsay.generate_audio_bytes(
             param.text,
             param.r,
+            param.fm,
+            param.english_word_min_length,
+            param.english_to_kana,
+            param.use_user_dic,
+            param.shorten_urls,
+        )
+    except Exception as e:
+        logger_uvicorn.error(e)
+        audio_bytes = b''
+
+    return Response(content=audio_bytes, media_type='audio/wav')
+
+
+@app.post('/v1/audio/speech')
+async def post_speech(param: OpenAISpeechParam):
+    logger_http.debug(locals())
+    logger_uvicorn.info(param.input)
+    try:
+        audio_bytes = jsay.generate_audio_bytes(
+            param.input,
+            param.speed,
             param.fm,
             param.english_word_min_length,
             param.english_to_kana,
