@@ -227,9 +227,9 @@ def __ensure_core(speaker_id=None, acceleration_mode=settings.acceleration_mode)
     def is_mode_change_needed():
         if __core is None:
             return False
-        if __core.is_gpu_mode and acceleration_mode == AccelerationMode.CPU:
+        if __core.is_gpu_mode and acceleration_mode == 'CPU':
             return True
-        if not __core.is_gpu_mode and acceleration_mode == AccelerationMode.GPU:
+        if not __core.is_gpu_mode and acceleration_mode == 'GPU':
             return True
         return False
 
