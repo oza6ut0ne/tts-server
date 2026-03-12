@@ -108,13 +108,15 @@ DEFAULT_ENGLISH_DIC = _find_default_path('english_dic.csv')
 DEFAULT_USER_DIC = _find_default_path('user_dic.csv')
 if platform.system() == 'Linux':
     DEFAULT_PLAY_COMMAND = 'paplay'
+    DEFAULT_ONNXRUNTIME = MAIN_DIR / 'libvoicevox_onnxruntime.so'
 else:
     DEFAULT_PLAY_COMMAND = ''
+    DEFAULT_ONNXRUNTIME = MAIN_DIR / 'voicevox_onnxruntime.dll'
 
 
 class Settings(BaseSettings):
     debug: bool = False
-    onnxruntime: str = str(MAIN_DIR / 'libvoicevox_onnxruntime.so')
+    onnxruntime: str = str(DEFAULT_ONNXRUNTIME)
     voicevox_models: str = str(MAIN_DIR / 'vvms')
     open_jtalk_dic: str = str(MAIN_DIR / 'open_jtalk_dic_utf_8-1.11')
     english_dic: str = str(DEFAULT_ENGLISH_DIC)
