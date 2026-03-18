@@ -52,7 +52,7 @@ URL_REPLACE_TEXT = 'URL'
 URL_REGEX = re.compile(r'(https?|ftp)(:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+)')
 SPLIT_TEXT_REGEX = re.compile(r'(?<=[\n　。、！？!?」』)）】》])|(?<=\.\s)')
 
-# https://github.com/VOICEVOX/voicevox_vvm/blob/0.16.0/README.md
+# https://github.com/VOICEVOX/voicevox_vvm/blob/0.16.3/README.md
 VVM_TO_STYLE_IDS_MAP = {
     '0.vvm': [0, 1, 2, 3, 4, 5, 6, 7, 8, 10],
     '1.vvm': [14],
