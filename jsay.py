@@ -59,8 +59,8 @@ CONFIG_DIR = _find_config_dir_path()
 
 
 def _find_default_path(rel_path):
-    if (Path('.').resolve() / rel_path).exists():
-        return Path('.').resolve() / rel_path
+    if (Path.cwd() / rel_path).exists():
+        return Path.cwd() / rel_path
     elif APPIMAGE_DIR and (APPIMAGE_DIR / rel_path).exists():
         return APPIMAGE_DIR / rel_path
     elif (MAIN_DIR / rel_path).exists():
@@ -153,7 +153,7 @@ if Path(settings.user_dic).is_file():
                 tmp_dict[key] = r[1]
         USER_DIC.update(tmp_dict)
         USER_DATA_REGEX = re.compile(
-            '|'.join(re.escape(k) for k in USER_DIC.keys()), re.IGNORECASE
+            '|'.join(re.escape(k) for k in USER_DIC), re.IGNORECASE
         )
         del reader, tmp_dict
 
@@ -291,9 +291,9 @@ def generate_audio_bytes(
                 '-ow',
                 '/dev/stdout',
                 '-r',
-                '{:f}'.format(speed),
+                f'{speed:f}',
                 '-fm',
-                '{:f}'.format(fm),
+                f'{fm:f}',
             ]
 
             p_jtalk = subprocess.Popen(

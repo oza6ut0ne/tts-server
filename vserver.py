@@ -63,8 +63,8 @@ CONFIG_DIR = _find_config_dir_path()
 
 
 def _find_default_path(rel_path):
-    if (Path('.').resolve() / rel_path).exists():
-        return Path('.').resolve() / rel_path
+    if (Path.cwd() / rel_path).exists():
+        return Path.cwd() / rel_path
     elif APPIMAGE_DIR and (APPIMAGE_DIR / rel_path).exists():
         return APPIMAGE_DIR / rel_path
     elif (MAIN_DIR / rel_path).exists():
