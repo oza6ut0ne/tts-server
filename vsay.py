@@ -5,8 +5,8 @@
 #   "alkana==0.0.3",
 #   "fasteners==0.18",
 #   "kanalizer==0.1.1",
-#   "pydantic==1.10.19",
-#   "python-dotenv==1.0.1",
+#   "pydantic==2.14.4",
+#   "pydantic-settings==2.16.3",
 #   "soundcard==0.4.5",
 #   "soundfile==0.13.1",
 #   "voicevox-core",
@@ -40,7 +40,12 @@ import alkana
 import fasteners
 import kanalizer
 import soundfile as sf
-from pydantic import BaseSettings
+from pydantic_settings import (
+    BaseSettings,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 from voicevox_core import AccelerationMode
 from voicevox_core.blocking import Onnxruntime, OpenJtalk, Synthesizer, VoiceModelFile
 
@@ -141,29 +146,28 @@ class Settings(BaseSettings):
     acceleration_mode: AccelerationMode = 'AUTO'
     speaker_id: int = 3
 
-    class Config:
-        env_prefix = 'vsay_'
-        env_file_encoding = 'utf-8'
-        env_file = _find_default_path('.env')
-        fields = {
-            'debug': {'env': ['vsay_debug', 'debug']},
-            'onnxruntime': {'env': ['vsay_onnxruntime', 'onnxruntime']},
-            'voicevox_models': {'env': ['vsay_voicevox_models', 'voicevox_models']},
-            'open_jtalk_dic': {'env': ['vsay_open_jtalk_dic', 'open_jtalk_dic']},
-            'english_dic': {'env': ['vsay_english_dic', 'english_dic']},
-            'user_dic': {'env': ['vsay_user_dic', 'user_dic']},
-            'lock_file': {'env': ['vsay_lock_file', 'lock_file']},
-            'pulse_server': {'env': ['vsay_pulse_server', 'pulse_server']},
-            'play_command': {'env': ['vsay_play_command', 'play_command']},
-            'speaker_idx': {'env': ['vsay_speaker_idx', 'speaker_idx']},
-            'use_alkana': {'env': ['vsay_use_alkana', 'use_alkana']},
-            'use_kanalizer': {'env': ['vsay_use_kanalizer', 'use_kanalizer']},
-            'debug_kanalizer': {'env': ['jsay_debug_kanalizer', 'debug_kanalizer']},
-            'acceleration_mode': {
-                'env': ['vsay_acceleration_mode', 'acceleration_mode']
-            },
-            'speaker_id': {'env': ['vsay_speaker_id', 'speaker_id']},
-        }
+    model_config = SettingsConfigDict(
+        env_prefix='vsay_',
+        env_file_encoding='utf-8',
+        env_file=_find_default_path('.env'),
+    )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ):
+        return (
+            init_settings,
+            env_settings,
+            EnvSettingsSource(settings_cls, env_prefix=''),
+            dotenv_settings,
+            file_secret_settings,
+        )
 
 
 settings = Settings()
@@ -619,12 +623,11 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO, format=log_format)
 
-    logger.debug(settings.dict())
+    logger.debug(settings.model_dump())
     logger.debug(args)
     if settings.debug and not settings.play_command:
         # lazily importing soundcard because it is slow
         import soundcard as sc
-
         logger.debug('speakers: %s', sc.all_speakers())
 
     if args.script is sys.stdin:

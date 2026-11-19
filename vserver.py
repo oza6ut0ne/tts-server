@@ -7,8 +7,8 @@
 #   "fastapi==0.101.0",
 #   "kanalizer==0.1.1",
 #   "paho-mqtt==2.1.0",
-#   "pydantic==1.10.19",
-#   "python-dotenv==1.0.1",
+#   "pydantic==2.14.4",
+#   "pydantic-settings==2.16.3",
 #   "soundcard==0.4.5",
 #   "soundfile==0.13.1",
 #   "uvicorn==0.23.2",
@@ -29,13 +29,20 @@ import logging
 import os
 import socket
 from pathlib import Path
-from typing import Any
+from typing import Annotated
 
 import paho.mqtt.client as mqtt
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import Response
-from pydantic import BaseModel, BaseSettings
+from pydantic import BaseModel, field_validator
+from pydantic_settings import (
+    BaseSettings,
+    EnvSettingsSource,
+    NoDecode,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 from voicevox_core import AccelerationMode
 
 import vsay
@@ -73,7 +80,7 @@ class Settings(BaseSettings):
     mqtt_user: str | None = None
     mqtt_password: str | None = None
     mqtt_node_id: str = f'{socket.gethostname().casefold()}'
-    mqtt_topics: list[str] = [f'tts/vsay/{mqtt_node_id}/command/#']
+    mqtt_topics: Annotated[list[str], NoDecode] = [f'tts/vsay/{mqtt_node_id}/command/#']
     mqtt_availability_topic: str = f'tts/vsay/{mqtt_node_id}/availability'
     mqtt_topic_all: str = 'tts/vsay/all'
     mqtt_qos: int = 0
@@ -94,23 +101,36 @@ class Settings(BaseSettings):
     # speaker_id: int = 8
     # speaker_id: int = 29
 
-    class Config:
-        env_prefix = 'vserver_'
-        env_file_encoding = 'utf-8'
-        env_file = _find_default_path('.env')
-        fields = {
-            'debug': {'env': ['vserver_debug', 'debug']},
-            'acceleration_mode': {
-                'env': ['vserver_acceleration_mode', 'acceleration_mode']
-            },
-            'speaker_id': {'env': ['vserver_speaker_id', 'speaker_id']},
-        }
+    model_config = SettingsConfigDict(
+        env_prefix='vserver_',
+        env_file_encoding='utf-8',
+        env_file=_find_default_path('.env'),
+    )
 
-        @classmethod
-        def parse_env_var(cls, field_name: str, raw_val: str) -> Any:
-            if field_name == 'mqtt_topics':
-                return raw_val.split(',')
-            return cls.json_loads(raw_val)
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ):
+        return (
+            init_settings,
+            env_settings,
+            EnvSettingsSource(settings_cls, env_prefix=''),
+            dotenv_settings,
+            file_secret_settings,
+        )
+
+    @field_validator('mqtt_topics', mode='before')
+    @classmethod
+    def decode_mqtt_topics(cls, v: list[str] | str) -> list[str]:
+        if isinstance(v, list):
+            return v
+        else:
+            return v.split(',')
 
 
 settings = Settings()
@@ -369,8 +389,8 @@ def main():
         logging.basicConfig(level=logging.INFO, format=log_format)
 
     logger = logging.getLogger(__name__)
-    logger.debug(settings.dict())
-    logger.debug(vsay.settings.dict())
+    logger.debug(settings.model_dump())
+    logger.debug(vsay.settings.model_dump())
     logger.debug(args)
 
     if not args.enable_mqtt and not args.serve_http:

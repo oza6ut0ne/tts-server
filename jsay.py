@@ -4,8 +4,8 @@
 #   "alkana==0.0.3",
 #   "fasteners==0.18",
 #   "kanalizer==0.1.1",
-#   "pydantic==1.10.19",
-#   "python-dotenv==1.0.1",
+#   "pydantic==2.14.4",
+#   "pydantic-settings==2.16.3",
 #   "soundcard==0.4.5",
 #   "soundfile==0.13.1",
 # ]
@@ -31,7 +31,12 @@ import alkana
 import fasteners
 import kanalizer
 import soundfile as sf
-from pydantic import BaseSettings
+from pydantic_settings import (
+    BaseSettings,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 
 # JDIC = '/var/lib/mecab/dic/open-jtalk/naist-jdic/'
 MAIN_DIR = Path(__file__).resolve().parent
@@ -95,24 +100,28 @@ class Settings(BaseSettings):
     use_kanalizer: bool = True
     debug_kanalizer: bool = False
 
-    class Config:
-        env_prefix = 'jsay_'
-        env_file_encoding = 'utf-8'
-        env_file = _find_default_path('.env')
-        fields = {
-            'debug': {'env': ['jsay_debug', 'debug']},
-            'htsvoice': {'env': ['jsay_htsvoice', 'htsvoice']},
-            'open_jtalk_dic': {'env': ['jsay_open_jtalk_dic', 'open_jtalk_dic']},
-            'english_dic': {'env': ['jsay_english_dic', 'english_dic']},
-            'user_dic': {'env': ['jsay_user_dic', 'user_dic']},
-            'lock_file': {'env': ['jsay_lock_file', 'lock_file']},
-            'pulse_server': {'env': ['jsay_pulse_server', 'pulse_server']},
-            'play_command': {'env': ['jsay_play_command', 'play_command']},
-            'speaker_idx': {'env': ['jsay_speaker_idx', 'speaker_idx']},
-            'use_alkana': {'env': ['jsay_use_alkana', 'use_alkana']},
-            'use_kanalizer': {'env': ['jsay_use_kanalizer', 'use_kanalizer']},
-            'debug_kanalizer': {'env': ['jsay_debug_kanalizer', 'debug_kanalizer']},
-        }
+    model_config = SettingsConfigDict(
+        env_prefix='jsay_',
+        env_file_encoding='utf-8',
+        env_file=_find_default_path('.env'),
+    )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ):
+        return (
+            init_settings,
+            env_settings,
+            EnvSettingsSource(settings_cls, env_prefix=''),
+            dotenv_settings,
+            file_secret_settings,
+        )
 
 
 settings = Settings()
@@ -522,7 +531,7 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO, format=log_format)
 
-    logger.debug(settings.dict())
+    logger.debug(settings.model_dump())
     logger.debug(args)
     if settings.debug and not settings.play_command:
         # lazily importing soundcard because it is slow
