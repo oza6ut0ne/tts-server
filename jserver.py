@@ -29,6 +29,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, field_validator
 from pydantic_settings import (
     BaseSettings,
+    DotEnvSettingsSource,
     EnvSettingsSource,
     NoDecode,
     PydanticBaseSettingsSource,
@@ -87,6 +88,7 @@ class Settings(BaseSettings):
         env_prefix='jserver_',
         env_file_encoding='utf-8',
         env_file=_find_default_path('.env'),
+        extra='ignore',
     )
 
     @classmethod
@@ -103,6 +105,7 @@ class Settings(BaseSettings):
             env_settings,
             EnvSettingsSource(settings_cls, env_prefix=''),
             dotenv_settings,
+            DotEnvSettingsSource(settings_cls, env_prefix=''),
             file_secret_settings,
         )
 

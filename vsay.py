@@ -42,6 +42,7 @@ import kanalizer
 import soundfile as sf
 from pydantic_settings import (
     BaseSettings,
+    DotEnvSettingsSource,
     EnvSettingsSource,
     PydanticBaseSettingsSource,
     SettingsConfigDict,
@@ -150,6 +151,7 @@ class Settings(BaseSettings):
         env_prefix='vsay_',
         env_file_encoding='utf-8',
         env_file=_find_default_path('.env'),
+        extra='ignore',
     )
 
     @classmethod
@@ -166,6 +168,7 @@ class Settings(BaseSettings):
             env_settings,
             EnvSettingsSource(settings_cls, env_prefix=''),
             dotenv_settings,
+            DotEnvSettingsSource(settings_cls, env_prefix=''),
             file_secret_settings,
         )
 
